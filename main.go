@@ -1,7 +1,15 @@
 package main
 
+import (
+	// "bytes"
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"net/http"
+)
+
 type MediaStyleT struct {
-	DisplayType string
+	DisplayType string `json:"displayType"`
 }
 
 func NewMediaStyleT(displayType string) MediaStyleT {
@@ -11,7 +19,7 @@ func NewMediaStyleT(displayType string) MediaStyleT {
 }
 
 type ContentStyleT struct {
-	MediaStyle MediaStyleT
+	MediaStyle MediaStyleT `json:"mediaStyle"`
 }
 
 func NewContentStyleT(mediaStyle MediaStyleT) ContentStyleT {
@@ -21,8 +29,8 @@ func NewContentStyleT(mediaStyle MediaStyleT) ContentStyleT {
 }
 
 type ContentT struct {
-	Text          string
-	ContentsStyle ContentStyleT
+	Text          string        `json:"text"`
+	ContentsStyle ContentStyleT `json:"contentsStyle"`
 }
 
 func NewContentT(text string, contentStyle ContentStyleT) ContentT {
@@ -33,8 +41,8 @@ func NewContentT(text string, contentStyle ContentStyleT) ContentT {
 }
 
 type ReadPermissionT struct {
-	Gids []string
-	Type string
+	Gids []string `json:"gids"`
+	Type string   `json:"type"`
 }
 
 func NewReadPermissionT(gids []string, types string) ReadPermissionT {
@@ -45,17 +53,63 @@ func NewReadPermissionT(gids []string, types string) ReadPermissionT {
 }
 
 type Post struct {
-	Content  ContentT
-	PostInfo ReadPermissionT
+	Contents ContentT        `json:"contents"`
+	PostInfo ReadPermissionT `json:"postInfo"`
 }
 
 func NewPost(content ContentT, postInfo ReadPermissionT) Post {
 	return Post{
-		Content:  content,
+		Contents: content,
 		PostInfo: postInfo,
+	}
+}
+
+type Header struct {
+	Cookie  string `header:"Cookie"`
+	Referer string `header:"Referer"`
+}
+
+func NewHeader(cookie string, referer string) Header {
+	return Header{
+		Cookie:  cookie,
+		Referer: referer,
 	}
 }
 
 func main() {
 
+	const cookie = ``
+
+	const referer = `https://linevoom.line.me/?utm_source=chrome_app&utm_medium=windows`
+
+	const url = "https://linevoom.line.me/api/post/create?sourceType=TIMELINE"
+
+	// header := NewHeader(cookie, referer)
+
+	newMediaStyle := NewMediaStyleT("GRID")
+	newContentStyle := NewContentStyleT(newMediaStyle)
+	newContent := NewContentT("testing this is post from golang http", newContentStyle)
+	newReadPermission := NewReadPermissionT([]string{}, "ALL")
+	newPost := Post{
+		newContent,
+		newReadPermission,
+	}
+	jsonPost, err := json.Marshal(newPost)
+	if err != nil {
+		panic(err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(jsonPost))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Cookie", cookie)
+	req.Header.Set("Referer", referer)
+	if err != nil {
+		panic(err)
+	}
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(res)
 }
